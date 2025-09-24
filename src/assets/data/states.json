@@ -1,0 +1,6 @@
+{
+  "states": [
+    { "state": "Kerala", "districts": ["Thiruvananthapuram","Kollam"] },
+    { "state": "Tamil Nadu", "districts": ["Chennai","Coimbatore"] }
+  ]
+}
