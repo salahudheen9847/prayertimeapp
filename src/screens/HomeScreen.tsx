@@ -69,6 +69,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [hijriDate, setHijriDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [blink, setBlink] = useState(true);
 
   const [openState, setOpenState] = useState(false);
   const [openDistrict, setOpenDistrict] = useState(false);
@@ -79,13 +80,15 @@ export default function HomeScreen({ navigation }: Props) {
   const onOpenState = () => setOpenDistrict(false);
   const onOpenDistrict = () => setOpenState(false);
 
-  // Update time every second
+  // Update time every second and toggle blink
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(moment().format("h:mm:ss A")), 1000);
+    const timer = setInterval(() => {
+      setCurrentTime(moment().format("h:mm:ss A"));
+      setBlink(prev => !prev);
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Load saved state/district/school/method & cached prayer times on focus
   useFocusEffect(
     useCallback(() => {
       (async () => {
@@ -111,13 +114,11 @@ export default function HomeScreen({ navigation }: Props) {
     }, [])
   );
 
-  // Update district automatically when state changes
   useEffect(() => {
     const districts = states.find(s => s.name === stateName)?.districts || [];
     if(districts.length > 0) setDistrict(districts[0]);
   }, [stateName]);
 
-  // Fetch prayer times function
   const fetchPrayerTimes = async (
     districtName: string, 
     schoolType: "1"|"2", 
@@ -176,7 +177,6 @@ export default function HomeScreen({ navigation }: Props) {
     } finally { if(showLoading) setLoading(false); }
   };
 
-  // Trigger fetch on change
   useEffect(() => {
     fetchPrayerTimes(district, school, method);
   }, [district, school, method]);
@@ -187,10 +187,22 @@ export default function HomeScreen({ navigation }: Props) {
     await AsyncStorage.setItem("school", newSchool);
   };
 
+  // Calculate next prayer
+  const getNextPrayer = () => {
+    if(!prayerTimes) return null;
+    const now = moment();
+    const times = Object.entries(prayerTimes).map(([name, time]) => ({
+      name,
+      time: moment(time, "HH:mm")
+    }));
+    return times.find(t => t.time.isAfter(now)) || times[0];
+  };
+
+  const nextPrayer = getNextPrayer();
+
   return (
     <SafeAreaView style={styles.container} edges={["top","bottom"]}>
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-        {/* Settings Button */}
         <TouchableOpacity 
           style={[styles.buttonCard, { marginBottom: 20 }]} 
           onPress={() => navigation.navigate("Settings")}
@@ -238,12 +250,20 @@ export default function HomeScreen({ navigation }: Props) {
         ) : error ? (
           <Text style={styles.loading}>{error}</Text>
         ) : (
-          prayerTimes && Object.entries(prayerTimes).map(([name, time]) => (
-            <View key={name} style={styles.card}>
-              <Text style={styles.prayerName}>{name === "Asr" && school === "1" ? "Asr (Hanafi)" : name}</Text>
-              <Text style={styles.prayerTime}>{moment(time, "HH:mm").format("h:mm A")}</Text>
-            </View>
-          ))
+          <>
+            {prayerTimes && Object.entries(prayerTimes).map(([name, time]) => {
+              // Only nextPrayer box will blink
+              const isNext = nextPrayer?.name === name;
+              return (
+                <View key={name} style={[styles.card, isNext ? { backgroundColor: "#FFEFD5" } : {}]}>
+                  <Text style={styles.prayerName}>{name === "Asr" && school === "1" ? "Asr (Hanafi)" : name}</Text>
+                  <Text style={[styles.prayerTime, isNext ? { opacity: blink ? 1 : 0 } : {}]}>
+                    {moment(time, "HH:mm").format("h:mm A")}
+                  </Text>
+                </View>
+              );
+            })}
+          </>
         )}
 
         <TouchableOpacity style={styles.buttonCard} onPress={toggleSchool} activeOpacity={0.8}>
