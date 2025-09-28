@@ -1,4 +1,4 @@
-package com.prayertimeapp
+package com.salahudheen.prayertimeapp
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

@@ -1,4 +1,7 @@
-package com.prayertimeapp
+package com.salahudheen.prayertimeapp
+import com.salahudheen.prayertimeapp.BuildConfig
+import com.salahudheen.prayertimeapp.R
+
 
 import android.app.Application
 import com.facebook.react.PackageList
