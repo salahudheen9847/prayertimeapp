@@ -52,11 +52,18 @@ const districtCoordinates: Record<string, { lat: number; lon: number }> = {
   Madurai: { lat: 9.9252, lon: 78.1198 },
 };
 
+const methods = [
+  { label: "Karachi (Pakistan, India)", value: "2" },
+  { label: "Muslim World League (MWL)", value: "3" },
+  { label: "Egyptian General Authority", value: "5" },
+];
+
 export default function HomeScreen({ navigation }: Props) {
   const [prayerTimes, setPrayerTimes] = useState<PrayerTimesAPI | null>(null);
   const [stateName, setStateName] = useState("Kerala");
   const [district, setDistrict] = useState("Thiruvananthapuram");
   const [school, setSchool] = useState<"1" | "2">("2");
+  const [method, setMethod] = useState("3"); // default MWL
   const [currentTime, setCurrentTime] = useState(moment().format("h:mm:ss A"));
   const [gregorianDate, setGregorianDate] = useState("");
   const [hijriDate, setHijriDate] = useState("");
@@ -78,21 +85,28 @@ export default function HomeScreen({ navigation }: Props) {
     return () => clearInterval(timer);
   }, []);
 
-  // Load saved state/district/school & cached prayer times on screen focus
+  // Load saved state/district/school/method & cached prayer times on focus
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        const [savedState, savedDistrict, savedSchool] = await Promise.all([
+        const [savedState, savedDistrict, savedSchool, savedMethod] = await Promise.all([
           AsyncStorage.getItem("state"),
           AsyncStorage.getItem("district"),
           AsyncStorage.getItem("school"),
+          AsyncStorage.getItem("method"),
         ]);
 
         if(savedState) setStateName(savedState);
         if(savedDistrict) setDistrict(savedDistrict);
         if(savedSchool === "1" || savedSchool === "2") setSchool(savedSchool);
+        if(savedMethod) setMethod(savedMethod);
 
-        await fetchPrayerTimes(savedDistrict || district, savedSchool === "1" || savedSchool === "2" ? savedSchool : school, false);
+        await fetchPrayerTimes(
+          savedDistrict || district,
+          savedSchool === "1" || savedSchool === "2" ? savedSchool : school,
+          savedMethod || method,
+          false
+        );
       })();
     }, [])
   );
@@ -103,8 +117,13 @@ export default function HomeScreen({ navigation }: Props) {
     if(districts.length > 0) setDistrict(districts[0]);
   }, [stateName]);
 
-  // Fetch prayer times function (with caching)
-  const fetchPrayerTimes = async (districtName: string, schoolType: "1"|"2", showLoading = true) => {
+  // Fetch prayer times function
+  const fetchPrayerTimes = async (
+    districtName: string, 
+    schoolType: "1"|"2", 
+    methodType: string,
+    showLoading = true
+  ) => {
     if(showLoading) setLoading(true);
     setError("");
 
@@ -112,7 +131,7 @@ export default function HomeScreen({ navigation }: Props) {
       const coords = districtCoordinates[districtName];
       if(!coords) throw new Error("Coordinates not found");
 
-      const cacheKey = `${districtName}_${schoolType}_${moment().format("YYYY-MM-DD")}`;
+      const cacheKey = `${districtName}_${schoolType}_${methodType}_${moment().format("YYYY-MM-DD")}`;
       const cached = await AsyncStorage.getItem(cacheKey);
 
       if(cached){
@@ -122,7 +141,12 @@ export default function HomeScreen({ navigation }: Props) {
         setHijriDate(hijri);
       } else {
         const { data } = await axios.get("https://api.aladhan.com/v1/timings", {
-          params: { latitude: coords.lat, longitude: coords.lon, method: 2, school: schoolType }
+          params: { 
+            latitude: coords.lat, 
+            longitude: coords.lon, 
+            method: methodType, 
+            school: schoolType 
+          }
         });
 
         if(data.code === 200){
@@ -139,11 +163,11 @@ export default function HomeScreen({ navigation }: Props) {
         } else setError("Failed to fetch prayer times");
       }
 
-      // Save preferences once per fetch
       await AsyncStorage.multiSet([
         ["state", stateName],
         ["district", districtName],
         ["school", schoolType],
+        ["method", methodType],
       ]);
 
     } catch(err) {
@@ -152,10 +176,10 @@ export default function HomeScreen({ navigation }: Props) {
     } finally { if(showLoading) setLoading(false); }
   };
 
-  // Fetch prayer times whenever district or school changes
+  // Trigger fetch on change
   useEffect(() => {
-    fetchPrayerTimes(district, school);
-  }, [district, school]);
+    fetchPrayerTimes(district, school, method);
+  }, [district, school, method]);
 
   const toggleSchool = async () => {
     const newSchool = school === "2" ? "1" : "2";
@@ -166,6 +190,15 @@ export default function HomeScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={["top","bottom"]}>
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+        {/* Settings Button */}
+        <TouchableOpacity 
+          style={[styles.buttonCard, { marginBottom: 20 }]} 
+          onPress={() => navigation.navigate("Settings")}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.buttonText}>Open Settings</Text>
+        </TouchableOpacity>
+
         <Text style={styles.currentTime}>{currentTime}</Text>
         <Text style={styles.gregorianDate}>{gregorianDate}</Text>
         <Text style={styles.hijriDate}>{hijriDate}</Text>
@@ -217,7 +250,6 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.buttonText}>Switch to {school==="2"?"Hanafi":"Shafi"}</Text>
         </TouchableOpacity>
 
-        {/* Support Phone Number */}
         <TouchableOpacity 
           style={[styles.buttonCard, { marginTop: 20 }]} 
           onPress={() => Linking.openURL("tel:+91974552510")}

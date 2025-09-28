@@ -65,7 +65,7 @@ export default function HanafiScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const method = "2"; // MWL
+  const method = "1"; // MWL
   const school = "1"; // Hanafi
 
   useEffect(() => {
