@@ -4,13 +4,13 @@ import { NavigationContainer } from "@react-navigation/native";
 
 import HomeScreen from "../screens/HomeScreen";
 import HanafiScreen from "../screens/HanafiScreen";
-import SettingsScreen from "../screens/SettingsScreen"; // 👈 added
+import SettingsScreen from "../screens/SettingsScreen";
 
 // Define navigation types
 export type RootStackParamList = {
   Home: undefined;
   Hanafi: undefined;
-  Settings: undefined; // 👈 added
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

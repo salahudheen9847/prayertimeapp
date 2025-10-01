@@ -5,10 +5,21 @@ import DropDownPicker from "react-native-dropdown-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// Full list of AlAdhan calculation methods
 const methods = [
-  { label: "Karachi (Pakistan, India)", value: "2" },
+  { label: "University of Islamic Sciences, Karachi", value: "1" },
+  { label: "Islamic Society of North America (ISNA)", value: "2" },
   { label: "Muslim World League (MWL)", value: "3" },
-  { label: "Egyptian General Authority", value: "5" },
+  { label: "Umm Al-Qura University, Makkah", value: "4" },
+  { label: "Egyptian General Authority of Survey", value: "5" },
+  { label: "Institute of Geophysics, University of Tehran", value: "7" },
+  { label: "Gulf Region", value: "8" },
+  { label: "Kuwait", value: "9" },
+  { label: "Qatar", value: "10" },
+  { label: "Singapore, JAKIM, Malaysia", value: "11" },
+  { label: "Union Organization Islamic de France", value: "12" },
+  { label: "Diyanet İşleri Başkanlığı, Turkey", value: "13" },
+  { label: "Spiritual Administration of Muslims of Russia", value: "14" },
 ];
 
 export default function SettingsScreen() {
@@ -16,15 +27,17 @@ export default function SettingsScreen() {
   const [method, setMethod] = useState("3"); // default MWL
   const [items, setItems] = useState(methods);
 
+  // Load saved method
   useEffect(() => {
     (async () => {
       const savedMethod = await AsyncStorage.getItem("method");
-      if(savedMethod) setMethod(savedMethod);
+      if (savedMethod) setMethod(savedMethod);
     })();
   }, []);
 
+  // Save method whenever it changes
   useEffect(() => {
-    if(method) AsyncStorage.setItem("method", method);
+    if (method) AsyncStorage.setItem("method", method);
   }, [method]);
 
   return (
@@ -40,7 +53,7 @@ export default function SettingsScreen() {
           setValue={setMethod}
           setItems={setItems}
           listMode="MODAL"
-          modalProps={{ animationType:"slide" }}
+          modalProps={{ animationType: "slide" }}
         />
       </View>
     </SafeAreaView>
